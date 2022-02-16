@@ -4,7 +4,7 @@ C:
 CD %~dp0
 
 :: Write date, time and git version into asm file for next build
-::ZXVersion.exe
+ZXVersion.exe
 
 :: Arguments passed from Zeus or command line:
 ::   -c   Launch CSpect

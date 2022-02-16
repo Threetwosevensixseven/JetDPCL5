@@ -8,11 +8,10 @@ zxAllowFloatingLabels   = false                         ; this only runs on the 
 
 zxnextmap DriverBank,-1,-1,-1,-1,-1,-1,-1               ; Assemble into Next RAM bank but displace back down to $0000
 org $0000                                               ; $0000 is the entry point for API calls directed to the
-ApiEntry:               //jr EntryStart                   ; printer driver.
-                        //db "JetDPCL5v1.0"               ; Put a signature and version in the file in case we ever
-                        //BuildNo()                     ; need to detect it programmatically
-                        //db 0
-                        //CSBreak()
+ApiEntry:               jr EntryStart                   ; printer driver.
+                        db "JetDPCL5v1."                ; Put a signature and version in the file in case we ever
+                        BuildNo()                       ; need to detect it programmatically
+                        db 0
 EntryStart:             ld a, b                         ; On entry, B=call id with HL,DE other parameters.
                         cp $fb                          ; A standard printer driver that supports NextBASIC and CP/M
                         jr z, output_char               ; only needs to provide 2 standard calls:
@@ -48,6 +47,7 @@ check_printer:                                          ; Wait for the printer t
 
 OpenESPConnection       proc
                         ld hl, [RE_Ok]Commands.OK
+                        //ld hl, [RE_Test]$0000
                         CSBreak()
                         //ESPSend("AT")
                         //call ESPReceiveWaitOK
@@ -74,12 +74,13 @@ reloc_end:
 
 include "constants.asm"
 include "macros.asm"
+include "version.asm", true
 
 Start equ ApiEntry
 Length equ $-ApiEntry
 zeusprint "Generating ", (reloc_end-reloc_start)/2, "relocation symbols"
 export_sym "..\..\..\bin\JetDPCL5.sym", %11111111111 00
-zeusinvoke "..\..\..\build\Relocate.bat"
+zeusinvoke "..\..\..\build\ZXRelocate.bat"
 output_bin "..\..\..\bin\JetDPCL5.bin", Start, Length
 
 

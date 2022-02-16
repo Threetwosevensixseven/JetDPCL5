@@ -3,4 +3,4 @@
 C:
 CD %~dp0
 
-Relocate.exe
+ZXRelocate.exe
