@@ -52,7 +52,7 @@ check_printer:                                          ; Wait for the printer t
                         ld c, (printer_port)
                         out (c), e
                         call [RE_Page2a]PageZXBanks
-                        call PrintESPCharToBuffer
+                        call CopyCharToBuffer           ; This routine is in ZX bank 0 (slot 4).
                         call [RE_Page2b]RestoreZXBanks
                         and a                           ; clear carry to indicate success
                         ret
@@ -90,21 +90,21 @@ BA_ZX0:                 db 0
 BA_ZX1:                 db 0
 
 OpenESPConnectionFar    proc
-                        call [RE_Page3a]PageZXBanks
-                        call OpenESPConnection
-                        call [RE_Page3b]RestoreZXBanks
-                        and a                                   ; Return success
+                        call [RE_Page3a]PageZXBanks     ; Page in ZX banks.
+                        call OpenESPConnection          ; This routine is in ZX bank 0 (slot 4).
+                        call [RE_Page3b]RestoreZXBanks  ; Restore original banks.
+                        and a                           ; Return success.
                         ret
 pend
 
 ConnIsOpen:             db 0
 
 CloseESPConnectionFar   proc
-                        call [RE_Page4a]PageZXBanks
-                        ld hl, [RE_IsOpen2]ConnIsOpen
-                        call CloseESPConnection
-                        call [RE_Page4b]RestoreZXBanks
-                        and a                                   ; Return success
+                        call [RE_Page4a]PageZXBanks     ; Page in ZX banks.
+                        ld hl, [RE_IsOpen2]ConnIsOpen   ; Load input parameter to avoid relocation issues.
+                        call CloseESPConnection         ; This routine is in ZX bank 0 (slot 4).
+                        call [RE_Page4b]RestoreZXBanks  ; Restore original banks.
+                        and a                           ; Return success.
                         ret
 pend
 
