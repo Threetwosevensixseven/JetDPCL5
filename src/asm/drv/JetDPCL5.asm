@@ -3,22 +3,25 @@
 zeusemulate             "Next", "RAW"                   ; RAW prevents Zeus from adding some BASIC emulator-friendly
 zoLogicOperatorsHighPri = false                         ; data like the stack and system variables. Not needed because
 zxAllowFloatingLabels   = false                         ; this only runs on the Next, and everything is already present.
-//optionsize 5
-//Cspect optionbool 15, -15, "Cspect", false              ; Zeus GUI option to launch CSpect
 
-zxnextmap DriverBank,-1,-1,-1,-1,-1,-1,-1               ; Assemble into Next RAM bank but displace back down to $0000
-org $0000                                               ; $0000 is the entry point for API calls directed to the
-ApiEntry:               jr EntryStart                   ; printer driver.
+zxnextmap DriverBank,-1,-1,-1,-1,-1,-1,-1          ; Displace driver into Zeus MMU bank 30, assemble at $0000.
+org $0000                                               ; Displace ZX0 bank into Zeus MMU bank 32, assemble at $8000.
+ApiEntry:               jr EntryStart                   ; $0000 is the entry point for API calls directed to the
+                        nop                             ; printer driver.
+IsrEntry:               jr IsrStart                     ; IM1 ISR must be at $0003.
                         db "JetDPCL5v1."                ; Put a signature and version in the file in case we ever
-                        BuildNo()                       ; need to detect it programmatically
+                        BuildNo()                       ; need to detect it programmatically.
                         db 0
+IsrStart:               ret                             ; Replace with routine that counts FRAMES and closes TCP socket
 EntryStart:             ld a, b                         ; On entry, B=call id with HL,DE other parameters.
                         cp $fb                          ; A standard printer driver that supports NextBASIC and CP/M
                         jr z, output_char               ; only needs to provide 2 standard calls:
                         cp $f7                          ;   B=$f7: return output status
                         jr z, return_status             ;   B=$fb: output character
                         cp $01                          ; Test command 1
-                        jr z, OpenESPConnection
+                        jr z, OpenESPConnectionFar
+                        cp $02
+                        jr z, CloseESPConnectionFar
 ApiError:
                         xor a                           ; A=0, unsupported call id
                         scf                             ; Fc=1, signals error
@@ -28,6 +31,12 @@ return_status:
                         and a                           ; clear carry to indicate success
                         ret                             ; exit with BC=$0000 and carry set if bust
 output_char:
+                        push de
+                        ld hl, [RE_IsOpen1]ConnIsOpen
+                        ld a, (hl)
+                        or a
+                        call z, [RE_Open1]OpenESPConnectionFar
+                        pop de
                         ld a, $7f                       ; It's good practice to allow the user to abort with BREAK
                         in a,($fe)                      ; if the printer is stuck in a busy loop.
                         rra
@@ -42,32 +51,71 @@ output_char:
 check_printer:                                          ; Wait for the printer to become ready.
                         ld c, (printer_port)
                         out (c), e
+                        call [RE_Page2a]PageZXBanks
+                        call PrintESPCharToBuffer
+                        call [RE_Page2b]RestoreZXBanks
                         and a                           ; clear carry to indicate success
                         ret
 
-OpenESPConnection       proc
-                        ld hl, [RE_Ok]Commands.OK
-                        //ld hl, [RE_Test]$0000
-                        CSBreak()
-                        //ESPSend("AT")
-                        //call ESPReceiveWaitOK
+NextRegReadProc         proc
+                        ld bc, Port.NextReg
+                        out (c), a
+                        inc b
+                        in a, (c)
                         ret
 pend
 
-Commands                proc
-  OK:                   db "OK", CR, LF, 0
+PageZXBanks             proc
+                        NextRegRead($54)
+                        ld ([RE_RestoreAddr0]RestoreZXBanks.Restore0), a
+                        ld a, ([RE_RestoreBank0]BA_ZX0)
+                        nextreg $54, a
+                        NextRegRead($57)
+                        ld ([RE_RestoreAddr1]RestoreZXBanks.Restore1), a
+                        ld a, ([RE_RestoreBank1]BA_ZX1)
+                        nextreg $57, a
+                        ret
+pend
+
+
+RestoreZXBanks          proc
+                        ld a, [Restore0]SMC
+                        nextreg $54, a
+                        ld a, [Restore1]SMC
+                        nextreg $57, a
+                        ret
+pend
+
+BA_ZX0:                 db 0
+BA_ZX1:                 db 0
+
+OpenESPConnectionFar    proc
+                        call [RE_Page3a]PageZXBanks
+                        call OpenESPConnection
+                        call [RE_Page3b]RestoreZXBanks
+                        and a                                   ; Return success
+                        ret
+pend
+
+ConnIsOpen:             db 0
+
+CloseESPConnectionFar   proc
+                        call [RE_Page4a]PageZXBanks
+                        ld hl, [RE_IsOpen2]ConnIsOpen
+                        call CloseESPConnection
+                        call [RE_Page4b]RestoreZXBanks
+                        and a                                   ; Return success
+                        ret
 pend
 
 if ($>512)
   zeuserror "Driver code exceeds 512 bytes!"
 else
+  zeusprint "Driver size=", $
   defs 512-$
 endif
 
 ; Each relocation is the offset of the high byte of an address to be relocated.
-; This particular driver is so simple it doesn't contain any absolute addresses
-; needing to be relocated. (border.asm is a slightly more complex driver that
-; does have a relocation table).
 reloc_start:
 include "RelocateTable.asm", true
 reloc_end:
@@ -78,9 +126,11 @@ include "version.asm", true
 
 Start equ ApiEntry
 Length equ $-ApiEntry
-zeusprint "Generating ", (reloc_end-reloc_start)/2, "relocation symbols"
+zeusprint "Generating ", (reloc_end-reloc_start)/2, "relocation table entries"
 export_sym "..\..\..\bin\JetDPCL5.sym", %11111111111 00
 zeusinvoke "..\..\..\build\ZXRelocate.bat"
 output_bin "..\..\..\bin\JetDPCL5.bin", Start, Length
+
+include "zxbank0.asm"
 
 
