@@ -57,7 +57,7 @@ Flush:
 pend
 
 SendBufferToESP         proc                            ; No input parameters.
-                        ESPSendBufferSized(Cmd.CIPSEND,Cmd.CIPSENDLen) ; Send AT+CIPSEND= to ESP
+                        ESPSendBufferSized(Cmd.CIPSEND,Cmd.CIPSENDLen) ; Send AT+CIPSEND= to ESP.
                         ld hl, (Buffer.Pos)             ; Load buffer start
                         ld de, (Buffer.Start)
                         or a                            ; and calculate buffer size.
@@ -67,13 +67,13 @@ SendBufferToESP         proc                            ; No input parameters.
                         ret z                           ; (Buffer.Pos)=(Buffer.Start) so the count is 0.
                         ld (SendCount), hl              ; Save the buffer count.
                         call ConvertWordToAsc           ; Convert count to between 1..4 decimal digit bytes.
-                        ld e, a                         ; hl = Address of digits.
-                        ld d, 0                         ; de = Count of digits.
+                        ld e, a                         ; HL = Address of digits.
+                        ld d, 0                         ; DE = Count of digits.
                         call ESPSendBufferProc          ; Send decimal digits to ESP as continuation of AT+CIPSEND.
                         ESPSendBufferSized(Cmd.CRLF,Cmd.CRLFLen); Terminate AT+CIPSEND with CRLF and send to ESP.
                         call ESPReceiveWaitOK           ; Wait for OK response (will also be followed by >).
-                        ld hl, BufferAddr               ; hl = start of bytes to send.
-                        ld de, [SendCount]SMC           ; de = number of bytes to send.
+                        ld hl, BufferAddr               ; HL = start of bytes to send.
+                        ld de, [SendCount]SMC           ; DE = number of bytes to send.
                         call ESPSendBufferProc          ; Print the entire buffer to ESP,
                         call ESPReceiveWaitOK           ; and wait for OK or ERROR.
                         call ClearBuffer                ; Finally clear buffer
@@ -92,8 +92,8 @@ pend
 
 ; Originally came from: https://wikiti.brandonw.net/index.php?title=Z80_Routines:Other:DispHL
 ; or somewhere similar, and adapted to suit.
-ConvertWordToAsc        proc                            ; Input word in hl.
-                        ld de, WordStart                ; Returns with output word in hl and length in a.
+ConvertWordToAsc        proc                            ; Enter with input word in HL.
+                        ld de, WordStart                ; Returns with output word in HL and length in A.
                         ld bc, -10000
                         call Num1
                         ld bc, -1000
@@ -115,7 +115,7 @@ FindLoop:               ld a, (hl)
 Found:                  ld a, b
                         ld (WordLen), a
                         ld (WordStart), hl
-                        ret                             ; Returns with output word in hl and length in a.
+                        ret                             ; Returns with output word in HL and length in A.
 Num1:                   ld a, '0'-1
 Num2:                   inc a
                         add hl, bc

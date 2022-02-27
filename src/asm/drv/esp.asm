@@ -54,7 +54,7 @@ ESPSendBufferProc       proc
 ReadNextChar:           ld d, (hl)                      ; Read the next byte of the text to be sent
 WaitNotBusy:            in a, (c)                       ; Read the UART status
                         and UART_mTX_BUSY               ; and check the busy bit (bit 1)
-                        jr nz, WaitNotBusy//CheckTimeout             ; If busy, keep trying until not busy
+                        jr nz, CheckTimeout             ; If busy, keep trying until not busy
                         out (c), d                      ; Otherwise send the byte to the UART Tx port
                         inc hl                          ; Move to next byte of the text
                         dec e                           ; Check whether there are any more bytes of text
@@ -75,7 +75,7 @@ NotReady:               //ld a, 255
                         ld a, high UART_GetStatus       ; Are there any characters waiting?
                         in a, (low UART_GetStatus)      ; This inputs from the 16-bit address UART_GetStatus
                         rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
-                        jp nc, NotReady//CheckTimeout             ; If not, retry
+                        jp nc, CheckTimeout             ; If not, retry
                         ld a, high UART_RxD             ; Otherwise Read the byte
                         in a, (low UART_RxD)            ; from the UART Rx port
 StateJump equ $+1:      jp SMC
@@ -160,7 +160,7 @@ Value2 equ $+1:         ld hl, SMC                      ; Check the two upper va
                         jr z, Failure                   ; If we hit here, 32 bit value is $00000000
                         dec hl
                         ld (Value2), hl
-                        ld hl, ESPTimeout mod 65536
+                        ld hl, $FFFF
                         ld (Value), hl
                         jr Success
 pend
