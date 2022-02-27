@@ -146,5 +146,5 @@ pend                                                    ; but starts off empty.
 ZXBank0Length equ $-ZXBank0Start
 zeusprint "ZX Bank 0 size=",ZXBank0Length
 
-output_bin "..\..\..\bin\ZXBank0.bin", ZXBank0Start, ZXBank0Length
+output_bin "..\..\..\tmp\ZXBank0.bin", ZXBank0Start, ZXBank0Length
 

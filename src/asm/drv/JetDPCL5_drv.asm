@@ -18,7 +18,7 @@ Start:
                         defb 0                          ; number of 8K DivMMC RAM banks needed
                         defb 2                          ; number of 8K Spectrum RAM banks needed
 
-import_bin  "..\..\..\bin\JetDPCL5.bin"                 ; The driver + relocation table should now be included.
+import_bin  "..\..\..\tmp\JetDPCL5.bin"                 ; The driver + relocation table should now be included.
 
 ;       First, for each mmcbank requested:
 ;
@@ -48,7 +48,7 @@ import_bin  "..\..\..\bin\JetDPCL5.bin"                 ; The driver + relocatio
 db 1                                                    ; One bank ID patch
 dw ZX0_Length                                           ; Length of ZX bank 0
 ZX0_Start:
-import_bin "..\..\..\bin\ZXBank0.bin"
+import_bin "..\..\..\tmp\ZXBank0.bin"
 ZX0_Length equ $-ZX0_Start
 dw BA_ZX0                                               ; The single bank ID patch address
 

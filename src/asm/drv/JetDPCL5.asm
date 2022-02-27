@@ -125,9 +125,9 @@ include "version.asm", true
 Start equ ApiEntry
 Length equ $-ApiEntry
 zeusprint "Generating ", (reloc_end-reloc_start)/2, "relocation table entries"
-export_sym "..\..\..\bin\JetDPCL5.sym", %11111111111 00
+export_sym "..\..\..\tmp\JetDPCL5.sym", %11111111111 00
 zeusinvoke "..\..\..\build\ZXRelocate.bat"
-output_bin "..\..\..\bin\JetDPCL5.bin", Start, Length
+output_bin "..\..\..\tmp\JetDPCL5.bin", Start, Length
 
 include "zxbank0.asm"
 
