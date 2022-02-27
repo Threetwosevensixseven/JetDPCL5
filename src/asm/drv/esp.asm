@@ -1,6 +1,6 @@
 ; esp.asm
 
-ESPSend                 macro(Text)                     ; 1 <= length(Text) <= 253
+ESPSend                 macro(Text)                     ; 1 <= length(Text) <= 253, automatically adds CRLF
                         ld hl, Address                  ; Start of the text to send
                         ld e, length(Text)+2            ; Length of the text to send, including terminating CRLF
                         jp ESPSendProc                  ; Remaining send code is generic and reusable
@@ -14,25 +14,19 @@ ESPSendBytes            macro(Address, Length)          ; 1 <= length(Text) <= 2
                         jp ESPSendProc                  ; Remaining send code is generic and reusable
 mend
 
-ESPSendBuffer           macro(Address)                  ; 1 <= length(Text) <= 255 - MUST HAVE CRLF termination
-                        ld hl, Address                  ; Start of the text to send
-                        call GetBufferLength            ; returns with length in e and hl preserved
-                        call ESPSendBufferProc          ; Remaining send code is generic and reusable
-mend
-
-ESPSendBufferLen        macro(Address, LenAddr)         ; 1 <= length(Text) <= 255 - MUST HAVE CRLF termination
+ESPSendBufferLen        macro(Address, LenAddr)         ; 1 <= length(Text) <= 65535
                         ld hl, Address                  ; Start of the text to send
                         ld de, (LenAddr)
                         call ESPSendBufferProc          ; Remaining send code is generic and reusable
 mend
 
-ESPSendBufferSized      macro(Address, Len)              ; 1 <= length(Text) <= 255
+ESPSendBufferSized      macro(Address, Len)              ; 1 <= length(Text) <= 65535
                         ld hl, Address                  ; Start of the text to send
                         ld de, Len
                         call ESPSendBufferProc          ; Remaining send code is generic and reusable
 mend
 
-ESPSendProc             proc
+ESPSendProc             proc                            ; This is ONLY suitable for sending up to 255 bytes!!
                         call InitESPTimeout
                         ld bc, UART_GetStatus           ; UART Tx port also gives the UART status when read
 ReadNextChar:           ld d, (hl)                      ; Read the next byte of the text to be sent
@@ -48,17 +42,19 @@ CheckTimeout:           call CheckESPTimeout
                         jp WaitNotBusy
 pend
 
-ESPSendBufferProc       proc
+ESPSendBufferProc       proc                            ; This is suitable for sending up to 65536 bytes!!
                         call InitESPTimeout
                         ld bc, UART_GetStatus           ; UART Tx port also gives the UART status when read
-ReadNextChar:           ld d, (hl)                      ; Read the next byte of the text to be sent
 WaitNotBusy:            in a, (c)                       ; Read the UART status
                         and UART_mTX_BUSY               ; and check the busy bit (bit 1)
                         jr nz, CheckTimeout             ; If busy, keep trying until not busy
-                        out (c), d                      ; Otherwise send the byte to the UART Tx port
+                        ld a, (hl)                      ; Otherwise, read the next byte of the text to be sent
+                        out (c), a                      ; and send the byte to the UART Tx port
                         inc hl                          ; Move to next byte of the text
-                        dec e                           ; Check whether there are any more bytes of text
-                        jp nz, ReadNextChar             ; If there are, read and repeat
+                        dec de                          ; Check whether there are any more bytes of text
+                        ld a, d
+                        or e
+                        jp nz, WaitNotBusy              ; If there are, read and repeat
                         ret
 CheckTimeout:           call CheckESPTimeout
                         jp WaitNotBusy
@@ -70,9 +66,7 @@ ESPReceiveWaitOK        proc
                         ld (State), a
                         ld hl, FirstChar
                         ld (StateJump), hl
-NotReady:               //ld a, 255
-                        //ld(23692), a                    ; Turn off ULA scroll
-                        ld a, high UART_GetStatus       ; Are there any characters waiting?
+NotReady:               ld a, high UART_GetStatus       ; Are there any characters waiting?
                         in a, (low UART_GetStatus)      ; This inputs from the 16-bit address UART_GetStatus
                         rrca                            ; Check UART_mRX_DATA_READY flag in bit 0
                         jp nc, CheckTimeout             ; If not, retry
