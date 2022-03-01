@@ -6,6 +6,8 @@ ZXBank0                 equ 32
 printer_port            equ $fe
 relocs                  equ 0
 ULA_PORT                equ $fe
+FRAMES                  equ $5C78
+FlushAfterFrames        equ 50*1
 SMC                     equ 0
 BufferAddr              equ $E000
 BufferSize              equ $1FFF

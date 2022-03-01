@@ -3,9 +3,17 @@
 org $8000
 ZXBank0Start:
 
-OpenESPConnection       proc                            ; Enter with address on ConnIsOpen in HL.
+OpenESPConnection       proc                            ; Enter with address of ConnIsOpen in HL.
                         push hl                         ; Save address of ConnIsOpen.
-                        call ESPFlush
+                        add hl, -ConnIsOpen             ; Calculate driver base address offset
+                        ld (DriverBase), hl             ; and store it for later.
+                        push hl
+                        add hl, IsrEntry                ; Calculate real driver ISR address
+                        ld (ISRRealAddr), hl            ; and store it for later, for SMC speed.
+                        pop hl                          ; Calculate real stop at frame address
+                        add hl, IM1ISR.StopAtFrame      ; and store it for later, for SMC speed.
+                        ld (CopyCharToBuffer.FrameStopRealAddr), hl
+                        call UARTFlush                  ; Flush any chars already in UART RX buffer.
                         ESPSend("ATE0")                 ; Turn off remote echo by ESP.
                         call ESPReceiveWaitOK           ; Wait for OK or ERROR response.
                         ESPSend("AT+CIPCLOSE")          ; Don't raise error on AT+CIPCLOSE,
@@ -29,6 +37,11 @@ pend
 
 CopyCharToBuffer        proc                            ; Enter with char to copy to buffer in E,
                         ld a, e                         ; but copy to A to work with.
+                        ld hl, (ISRRealAddr)            ; Turn on the IM2 buffer flush timer:
+                        ld (hl), $18                    ; < SMC ISR to jr ($18) instead of ret ($C9).
+                        ld hl, (FRAMES)                 ; Calculate the FRAMES frame value where the buffer
+                        add hl, FlushAfterFrames        ; should be sent to ESP if no further chars are printed,
+                        ld ([FrameStopRealAddr]SMC), hl ; and save it into the IM1 ISR routine.
                         cp CR                           ; Allow CR
                         jr z, Validated
                         cp LF                           ; and LF,
@@ -87,6 +100,8 @@ CloseESPConnection      proc                            ; Enter with address on 
                         call ESPReceiveWaitOK           ; Because no connections might be open.
                         pop hl                          ; Restore address of ConnIsOpen.
                         ld (hl), 0                      ; Set ConnIsOpen=0.
+                        ld hl, (ISRRealAddr)            ; Turn off the IM2 buffer flush timer:
+                        ld (hl), $C9                    ; < SMC ISR to ret ($C9) instead of jr ($18).
                         ret
 pend
 
@@ -128,6 +143,8 @@ pend
 
 WordStart:              ds 5                            ; Results of ConvertWordToAsc
 WordLen:                dw $0000                        ; Get stored permanently here.
+DriverBase:             dw $0000                        ; Driver base address offset gets stored here.
+ISRRealAddr:            dw $0000                        ; Driver real ISR address gets stored here.
 
 Cmd                     proc
  CIPSEND                db "AT+CIPSEND="                ; Prefix of AT_CIPSEND cmd. Follow w/ 1..5 ASCII digits & CRLF.

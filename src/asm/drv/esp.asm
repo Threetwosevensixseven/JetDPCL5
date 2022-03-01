@@ -169,7 +169,7 @@ InitESPTimeout          proc
                         ret
 pend
 
-ESPFlush                proc
+UARTFlush               proc
                         ld bc, UART_GetStatus
 ReadLoop:               ld a, high UART_GetStatus       ; Are there any characters waiting?
                         in a, (c)                       ; This inputs from the 16-bit address UART_GetStatus

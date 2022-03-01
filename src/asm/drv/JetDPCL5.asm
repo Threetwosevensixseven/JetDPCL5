@@ -8,18 +8,17 @@ zxnextmap DriverBank,-1,-1,-1,-1,-1,-1,-1               ; Displace driver into Z
 org $0000
 ApiEntry:               jr EntryStart                   ; $0000 is the entry point for API calls directed to the
                         nop                             ; printer driver.
-IsrEntry:               jr IsrStart                     ; IM1 ISR must be at $0003.
+IsrEntry:               ret                             ; IM1 ISR must be at $0003.
+                        db IsrStart-IsrEntry-2          ; This is the relative offset for "jr IsrStart".
                         db "JetDPCL5v1."                ; Put a signature and version in the file in case we ever
                         BuildNo()                       ; need to detect it programmatically.
                         db 0
-IsrStart:               ret                             ; Replace with FRAMES timer to call CloseESPConnectionFar.
+IsrStart:               jp [RE_ISR0] IM1ISR             ; Jump to the real IR1 ISR routine.
 EntryStart:             ld a, b                         ; On entry, B=call id with HL,DE other parameters.
                         cp $fb                          ; A standard printer driver that supports NextBASIC and CP/M
                         jr z, OutputChar                ; only needs to provide 2 standard calls:
                         cp $f7                          ;   B=$f7: return output status;
                         jr z, ReturnStatus              ;   B=$fb: output character.
-                        cp $02                          ; DRIVER 80, 2:
-                        jr z, CloseESPConnectionFar     ; Manually send print job. Replace with IM1 FRAMES timer later.
 ApiError:
                         xor a                           ; A=0, unsupported call id.
                         scf                             ; FC=1, signals error.
@@ -105,6 +104,14 @@ CloseESPConnectionFar   proc
                         and a                           ; Return success.
                         ret
 pend
+
+IM1ISR                  proc                            ; Doesn't get called unless there are pending chars to print.
+                        ld hl, [StopAtFrame]SMC         ; Target value of FRAMES when we want to send the print job.
+                        ld de, (FRAMES)                 ; The current FRAMES value.
+                        CpHL(de)                        ; If current value < target value
+                        ret nc                          ; then exit ISR now,
+                        jr CloseESPConnectionFar        ; otherwise send remaining buffer to ESP, close connection,
+pend                                                    ; and disable this ISR until next char is printed.
 
 if ($>512)
   zeuserror "Driver code exceeds 512 bytes!"
