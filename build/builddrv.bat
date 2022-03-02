@@ -17,6 +17,7 @@ for %%a in (%*) do (
 if %cspect% equ 0 goto NoCSpect
 pskill.exe -t cspect.exe
 hdfmonkey.exe put C:\spec\sd\cspect-next-2gb.img ..\bin\JetDPCL5.drv demos\JetDPCL5\JetDPCL5.drv
+::hdfmonkey.exe put C:\spec\sd\cspect-next-2gb.img ..\bin\TestP.drv demos\JetDPCL5\TestP.drv
 ::hdfmonkey.exe put C:\spec\sd\cspect-next-2gb.img autoexec.bas nextzxos\autoexec.bas
 cd C:\spec\CSpect2_15_01
 CSpect.exe -w2 -zxnext -nextrom -basickeys -exit -brk -tv -com="COM3:2000000" -mmc=..\sd\cspect-next-2gb.img

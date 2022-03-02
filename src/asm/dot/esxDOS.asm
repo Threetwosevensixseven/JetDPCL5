@@ -28,6 +28,7 @@ esxDOS proc
 M_GETSETDRV             equ $89
 M_EXECCMD               equ $8F
 M_DRVAPI                equ $92
+M_P3DOS                 equ $94
 F_OPEN                  equ $9a
 F_CLOSE                 equ $9b
 F_READ                  equ $9d
@@ -65,7 +66,7 @@ DefaultDrive db   0
 
 
 ; Function:             Open file
-; In:                   IX = pointer to file name (ASCIIZ)
+; In:                   HL = pointer to file name (ASCIIZ) (IX for non-dot commands)
 ;                       B  = open mode
 ;                       A  = Drive
 ; Out:                  A  = file handle
@@ -74,8 +75,7 @@ DefaultDrive db   0
 ;                         A = 7   Name error - not 8.3?
 ;                         A = 11  Drive not found
 ;
-fOpen:
-                        ld a, (DefaultDrive)            ; get drive we're on
+fOpen:                  ld a, '*'                       ; get drive we're on
                         ld b, FA_READ                   ; b = open mode
                         Rst8(esxDOS.F_OPEN)             ; open read mode
                         ld (Handle), a
@@ -103,11 +103,11 @@ fCreate:
 
 ; Function:             Read bytes from a file
 ; In:                   A  = file handle
-;                       IX = address to load into
+;                       HL = address to load into (IX for non-dot commands)
 ;                       BC = number of bytes to read
 ; Out:                  Carry flag is set if read fails.
-fRead:
-                        ld a, (Handle)                  ; file handle
+;
+fRead:                  ld a, (Handle)                  ; file handle
                         Rst8(esxDOS.F_READ)             ; read file
                         ret
 

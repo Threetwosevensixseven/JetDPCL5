@@ -2,6 +2,7 @@
 
 optionsize 5
 Cspect optionbool 15, -15, "Cspect", false              ; Zeus GUI option to launch CSpect
+NotJetD optionbool 80, -15, "NotJetD", false              ; Zeus GUI option to create a second test driver
 
 multipass 4
 

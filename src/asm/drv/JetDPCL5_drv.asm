@@ -15,7 +15,7 @@ Start:
                         defm "NDRV"                     ; .DRV file signature
                         defb 'P'+$80                    ; standard driver id for printer device with IM1 ISR
                         defb RelocateCount              ; number of relocation entries (0..255)
-                        defb 0                          ; number of 8K DivMMC RAM banks needed
+                        defb 0                          ; number of 8K DivMMC RAM banks needed, bit7 = init/uninit
                         defb 2                          ; number of 8K Spectrum RAM banks needed
 
 import_bin  "..\..\..\tmp\JetDPCL5.bin"                 ; The driver + relocation table should now be included.
@@ -61,5 +61,9 @@ dw BA_ZX1                                               ; The single bank ID pat
 
 Length equ $-Start
 
-output_bin "..\..\..\bin\JetDPCL5.drv", Start, Length
+if enabled NotJetD
+  output_bin "..\..\..\bin\TestP.drv", Start, Length
+else
+  output_bin "..\..\..\bin\JetDPCL5.drv", Start, Length
+endif
 

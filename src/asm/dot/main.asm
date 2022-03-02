@@ -88,30 +88,57 @@ DoHelp:                 PrintMsg(Msg.Help)
                           jp Return.ToBasic
                         endif
 NoHelp:
-
-                        PrintMsg(Msg.Driver)
-                        ld c, 'P'                       ; Standard printer driver, ID 80.
-                        ld b, $7f                       ; $7f = Get ZX Bank 0 to write printer info into.
+                        PrintMsg(Msg.Driver)            ; "Checking driver..."
+                        ld bc, $7F50                    ; B=$7F, Get ZX Bank 0; C='P', standard printer driver
                         Rst8(esxDOS.M_DRVAPI)           ; Make esxDOS M_DRVAPI API call.
-                        ErrorIfCarry(Err.NoDriver)      ; Raise driver not installed error.
-                        ld a, 'J'                       ; Check for "JetD" magic signature,
+                        ld a, c                         ; If this was a valid call, C will contain the bank that
+                        ld (TempBank), a                ; the driver keeps its printer info in.
+                        ErrorIfCarry(Err.NoDriver)      ; "Driver not installed"
+                        ld a, 'J'                       ; Check for DEHL="JetD" magic signature,
                         cp d                            ; because there might be another printer driver installed,
-                        jr nz, NoDrv                    ; instead of JetDPCL5.drv.
+                        jr nz, WrongDriver              ; instead of JetDPCL5.drv.
                         ld a, 'e'
-                        cp e
-                        jr nz, NoDrv
-                        ld a, 't'
-                        cp h
-                        jr nz, NoDrv
-                        ld a, 'D'
+                        cp e                            ; Note that we're not attempting to uninstall the "wrong"
+                        jr nz, WrongDriver              ; driver and reinstall JetDPCL5.drv here. .uninstall does
+                        ld a, 't'                       ; quite a lot of heavy lifting and cleanup that it would be
+                        cp h                            ; unwise to reimplement, so let's keep it simple and just give
+                        jr nz, WrongDriver              ; an error if our driver isn't installed or the "wrong" print
+                        ld a, 'D'                       ; driver is installed.
                         cp l
-NoDrv:                  ErrorIfNotZero(Err.NoDriver)      ; Raise driver not installed error
-DriverInstalled:
+WrongDriver:            ErrorIfNotZero(Err.WrongDriver) ; "Wrong driver installed"
+
+                        PrintMsg(Msg.Installed)         ; "Driver is installed"
+
+                        ld d, [TempBank]$FF             ; If D<>$FF, the bank the driver keeps the printer info in.
+                        ld a, $FF
+                        cp d
+                        ErrorIfZero(Err.NoMem)          ; "4 Out of memory"
+                        NextRegRead($57)                ; Read the current MMU bank in slot 7,
+                        ld (RestoreBanks.Driver), a     ; save it for restoring at exit,
+                        ld a, d                         ; and map driver's printer bank
+                        nextreg $57, a                  ; into slot 7 now.
+
+                        NextRegRead($56)                ; Read the current MMU bank in slot 6,
+                        ld (RestoreBanks.Slot6), a      ; and save it for restoring at exit,
+                        call Allocate8KBank             ; Now allocate a new bank,
+                        ld (RestoreBanks.Bank1), a      ; Save it for restoring at exit,
+                        nextreg $56, a                  ; and map it into slot 6 now.
+
+                        PrintMsg(Msg.ReadingCfg)        ; "Reading printers..."
+                        ld hl, Files.MainCfg            ; "c:/sys/JetDPCL5.cfg", null-terminated
+                        call LoadCfgFile
+                        ErrorIfCarry(Err.CfgError)      ; Custom error "Error reading config"
+
+                        // TODO: Something is preventing errors from being thrown after this point
+
+                        //call ParseCfgFile               ; Parse config into a linked list
+
+                        ld de, Keys.Printers            ; DE = Null-terminated key to search for
+                        //call CfgFindKey                 ; CF=Success, HL=Value address, BC=Value length
                         //CSBreak()
+                        ErrorAlways(Err.NoPrinters)
 
-                        //PrintMsg(Msg.Getting)           ; Reading printers...
-
-
+                        //Freeze(1,3)
 
                         if enabled ErrDebug
                           ; This is a temporary testing point that indicates we have have reached
@@ -128,10 +155,10 @@ pend
                         include "macros.asm"            ; Zeus macros
                         include "general.asm"           ; General routines
                         include "esp.asm"               ; ESP and SLIP routines
+                        include "esxDOS.asm"            ; esxDOS routines
+                        include "config.asm"            ; Code to read, parse and search .cfg (ini) files
                         include "print.asm"             ; Messaging and error routines
                         include "vars.asm"              ; Global variables
-                        include "esxDOS.asm"            ; Code to read, parse and search .cfg (ini) files
-                        include "config.asm"            ; Code to read, parse and search .cfg (ini) files
 
 Length       equ $-Main
 zeusprinthex "Dot Cmd: ", zeusmmu(DotCommand8KBank), Length

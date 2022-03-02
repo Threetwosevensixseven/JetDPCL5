@@ -19,7 +19,9 @@ Msg                     proc
                         db Copyright, " 2022 Robin Verhagen-Guest", CR, CR, 0
   EOL:                  db CR, 0
   Driver:               db "Checking driver...", CR, 0
-  Getting:              db "Reading printers...", CR, 0
+  Installed:            db "Driver is installed", CR, 0
+  ReadingCfg:           db "Reading printers...", CR, 0
+
   Flushing:             db "Flushing UART...", CR, 0
   Resetting:            db "Resetting ESP...", CR, 0
   Done:                 db "ESP successfully reset!", CR, 0
@@ -46,7 +48,9 @@ Err                     proc
   ArgsBad:              db "Invalid Argument",      's'|128
 
   NoDriver:             db "Driver not installe",   'd'|128
-
+  WrongDriver:          db "Wrong driver installe", 'd'|128
+  CfgError:             db "Error reading confi",   'g'|128
+  NoPrinters:           db "No printers foun",      'd'|128
 
   //NotNB:                db "NextBASIC require",     'd'|128
   NoSync:               db "Sync error or no ES",   'P'|128

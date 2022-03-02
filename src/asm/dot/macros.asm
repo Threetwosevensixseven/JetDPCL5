@@ -76,30 +76,36 @@ ErrorAlways             macro(ErrAddr)                  ; Parameterised wrapper 
 mend
 
 ErrorIfCarry            macro(ErrAddr)                  ; Parameterised wrapper for throwing custom esxDOS-style error
-                        jp nc, Continue
+                        jr nc, Continue
                         ld hl, ErrAddr
                         jp ErrorProc
 Continue:
 mend
 
 ErrorIfNoCarry          macro(ErrAddr)                  ; Parameterised wrapper for throwing custom NextZXOS-style error
-                        jp c, Continue
+                        jr c, Continue
                         ld hl, ErrAddr
                         jp ErrorProc
 Continue:
 mend
 
 ErrorIfZero             macro(ErrAddr)                  ; Parameterised wrapper for throwing error if loop overruns
-                        jp nz, Continue
+                        jr nz, Continue
                         ld hl, ErrAddr
                         jp ErrorProc
 Continue:
 mend
 
 ErrorIfNotZero          macro(ErrAddr)                  ; Parameterised wrapper for throwing error after comparison
-                        jp z, Continue
+                        jr z, Continue
                         ld hl, ErrAddr
                         jp ErrorProc
+Continue:
+mend
+
+ErrorIfCarryEsx         macro()                         ; Wrapper for throwing standard esxDOS error
+                        jr nc, Continue
+                        jp ErrorProcEsx
 Continue:
 mend
 

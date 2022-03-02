@@ -38,8 +38,18 @@ Stop:                     Border(2)
                         endif
 pend
 
+ErrorProcEsx            proc
+                        if enabled ErrDebug
+Stop:                     Border(2)
+                          jr Stop
+                        else
+                          ld (Return.SetError), a       ; <SMC Write ld a, 0
+                          jp Return.WithCustomError     ; Straight to the error handing exit routine
+                        endif
+pend
+
 RestoreF8               proc
-Saved equ $+1:          ld a, SMC                       ; This was saved here when we entered the dot command
+                        ld a, [Saved]SMC                ; This was saved here when we entered the dot command
                         and %1000 0000                  ; Mask out everything but the F8 enable bit
                         ld d, a
                         NextRegRead(Reg.Peripheral2)    ; Read the current value of Peripheral 2 register
@@ -50,23 +60,42 @@ Saved equ $+1:          ld a, SMC                       ; This was saved here wh
 pend
 
 RestoreSpeed            proc
-Saved equ $+3:          nextreg Reg.CPUSpeed, SMC       ; Restore speed to what it originally was at dot cmd entry
+                        nextreg Reg.CPUSpeed,[Saved]SMC ; Restore speed to what it originally was at dot cmd entry
+                        ret
+pend
+
+RestoreBanks            proc
+                        push af
+                        ld a, [Driver]$FF               ; Read the MMU bank that was previously in slot 7.
+                        cp $FF                          ; If it was $FF then we never changed it,
+                        jr z, Restore1                  ; so skip this part,
+                        nextreg $57, a                  ; otherwise restore the original MMU bank to slot 7.
+Restore1:               ld a, [Bank1]$FF                ; Read the MMU bank that was previously in slot 6.
+                        call Deallocate8KBank           ; Ignore any error because we are doing best efforts to exit
+                        ld a, [Slot6]$FF                ; If<>$FF this is what BASIC had here on entry.
+                        cp $FF                          ; If it was $FF then we never changed it,
+                        jr z, NoRestore                 ; so skip this part,
+                        nextreg $56, a                  ; otherwise restore the original MMU bank to slot 6.
+NoRestore:              pop af
                         ret
 pend
 
 Return                  proc                            ; This routine restores everything preserved at the start of
-ToBasic:                                                ; the dot cmd, for success and errors, then returns to BASIC.                        call RestoreSpeed               ; Restore original CPU speed
-                        call RestoreF8                  ; Restore original F8 enable/disable state
-Stack                   ld sp, SMC                      ; Unwind stack to original point
+ToBasic:                                                ; the dot cmd, for success and errors, then returns to BASIC.
+                        call RestoreSpeed               ; Restore original CPU speed
+                        call RestoreF8                  ; Restore original F8 enable/disable state.
+                        call RestoreBanks               ; Restore original banks
+Stack                   ld sp, SMC                      ; Unwind stack to original point.
 Stack1                  equ Stack+1
-IY1 equ $+1:            ld iy, SMC                      ; Restore IY
-                        ld a, 0
+IY1 equ $+1:            ld iy, SMC                      ; Restore IY.
+                        ld a, [SetError]0               ; <SMC Standard esxDOS error code gets patched here.
                         ei
-                        ret                             ; Return to BASIC
+                        ret                             ; Return to BASIC.
 WithCustomError:
                         push hl
                         call RestoreSpeed               ; Restore original CPU speed
                         call RestoreF8                  ; Restore original F8 enable/disable state
+                        call RestoreBanks               ; Restore original banks
                         xor a
                         scf                             ; Signal error, hl = custom error message
                         pop hl
@@ -106,6 +135,25 @@ Loop:                   halt                            ; Note that we already h
                         di                              ; In this dot cmd interrupts are off unless waiting or printing
                         ld sp, [SavedStack]SMC          ; Restore stack
                         ret
+pend
+
+Allocate8KBank          proc
+                        ld hl, $0001                    ; H = $00: rc_banktype_zx, L = $01: rc_bank_alloc
+Internal:               exx
+                        ld c, 7                         ; 16K Bank 7 required for most NextZXOS API calls
+                        ld de, IDE_BANK                 ; M_P3DOS takes care of stack safety stack for us
+                        Rst8(esxDOS.M_P3DOS)            ; Make NextZXOS API call through esxDOS API with M_P3DOS
+                        ErrorIfNoCarry(Err.NoMem)       ; Fatal error, exits dot command
+                        ld a, e                         ; Return in a more conveniently saveable register (A not E)
+                        ret
+pend
+
+Deallocate8KBank        proc                            ; Takes bank to deallocate in A (not E) for convenience
+                        cp $FF                          ; If value is $FF it means we never allocated the bank,
+                        ret z                           ; so return with carry clear (error) if that is the case
+                        ld e, a                         ; Now move bank to deallocate into E for the API call
+                        ld hl, $0003                    ; H = $00: rc_banktype_zx, L = $03: rc_bank_free
+                        jr Allocate8KBank.Internal      ; Rest of deallocate is the same as the allocate routine
 pend
 
 ; ***************************************************************************

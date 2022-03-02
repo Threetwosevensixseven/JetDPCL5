@@ -10,8 +10,8 @@ zeusmaxdatabreakpoint           EQU $000E
 ZEUSMAXDATABREAKPOINT           EQU $000E
 zeuside                         EQU $0001
 ZEUSIDE                         EQU $0001
-timestr                         EQU "06:10 pm Tue 1/Mar/2022"
-TIMESTR                         EQU "06:10 pm Tue 1/Mar/2022"
+timestr                         EQU "06:24 pm Wed 2/Mar/2022"
+TIMESTR                         EQU "06:24 pm Wed 2/Mar/2022"
 ZEUSEXECDIR                     EQU "C:\Users\robin\Documents\Visual Studio 2015\Projects\JetPowerJack\tools"
 zeusexecdir                     EQU "C:\Users\robin\Documents\Visual Studio 2015\Projects\JetPowerJack\tools"
 ZEUSSRCDIR                      EQU "C:\Users\robin\Documents\Visual Studio 2015\Projects\JetDPCL5\src\asm\drv"
@@ -51,6 +51,7 @@ zeus_cpm_drives                 EQU "C:\Users\robin\Downloads\cpm_app (2)\cpm_di
 bZeusRunningInHeaven            EQU $0000
 bZeusRunningInHell              EQU $0000
 Cspect                          EQU $0000
+NotJetD                         EQU $0000
 zxAllowFloatingLabels           EQU $0000
 ApiEntry                        EQU $0000
 IsrEntry                        EQU $0003
@@ -146,13 +147,13 @@ CSExit                          MACRO ()
 CpHL                            MACRO (Register[])
 NextRegRead                     MACRO (Register[])
 BuildNo                         MACRO ()
-BuildNoValue                    EQU "10"
+BuildNoValue                    EQU "11"
 BuildDate                       MACRO ()
-BuildDateValue                  EQU "01 Mar 2022"
+BuildDateValue                  EQU "02 Mar 2022"
 BuildTime                       MACRO ()
-BuildTimeValue                  EQU "18:10"
+BuildTimeValue                  EQU "18:24"
 BuildTimeSecs                   MACRO ()
-BuildTimeSecsValue              EQU "18:10:02"
+BuildTimeSecsValue              EQU "18:24:21"
 Start                           EQU $0000
 Length                          EQU $0222
 ZXBank0Start                    EQU $8000

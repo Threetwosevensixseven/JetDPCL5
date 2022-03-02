@@ -25,3 +25,12 @@ WantsHelp:              ds 1
 ; UART
 Prescaler:              ds 3
 
+Files                   proc
+  MainCfg               db "c:/sys/JetDPCL5.cfg", 0
+pend
+
+Keys                    proc
+  Printers              db "xPrinters", 0
+pend
+
+

@@ -68,7 +68,11 @@ ReturnZXBank1           proc
                         ld a, ([RE_ZX1]BA_ZX1)
                         ld c, a                         ; BC = 1st DRIVER TO value
                         ld de, 'J'*256+'e'              ; DE = 2nd DRIVER TO value
-                        ld hl, 't'*256+'D'              ; HL = 3rd DRIVER TO value, DEHL = "JetD" magic signature
+                        if enabled NotJetD
+                          ld hl, 't'*256+'Q'            ; HL = 3rd DRIVER TO value, DEHL = "JetQ" magic signature
+                        else
+                          ld hl, 't'*256+'D'            ; HL = 3rd DRIVER TO value, DEHL = "JetD" magic signature
+                        endif
                         or a                            ; Clear carry to indicate success
                         ret
 pend

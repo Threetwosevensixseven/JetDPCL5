@@ -1,84 +1,33 @@
 ; config.asm
 
-CfgBuffer:                                              ; CfgBuffer is 8KB minus the size of the linked list.
-                                                        ; It starts at the bottom of 8k bank 2 ($C000),
+CfgBuffer equ $C000                                     ; CfgBuffer is 8KB minus the size of the linked list.
+                                                        ; It starts at the bottom of slot 6 ($C000),
                                                         ; and grows upwards.
-if enabled ZeusDebug
-  //import_bin "..\sd\NXtel.cfg"                          ; When running in Zeus, the cfg file contents
-  //db 0                                                  ; EOF marker just in case
-endif                                                   ; will already be planted in memory in the buffer.
-PreloadedCfgAddr equ $-1
-PreloadedCfgLen equ $-CfgBuffer
 
-//org CfgFileStart-CfgList.Size                           ; The CfgList linked list is positioned near
-CfgList proc                                            ; the top of 8k bank 2, and grows downwards.
-  struct                                                ; The first record is at $DFDF-$DFF0.
-    LineAddr            ds 1
-    LineAddrMSB         ds 1
-    KeyAddr             ds 2
-    KeyLen              ds 1
-    KeyLenMSB           ds 1
-    ValueAddr           ds 2
-    ValueLen            ds 2
-    LineLen             ds 2
-    PrevEntry           ds 1
-    PrevEntryMSB        ds 1
-    NextEntry           ds 2
-    SectionEntry        ds 2
-  Size send
-  //zeusprinthex CfgList,CfgList+CfgList.Size-1, Size
+LoadCfgFile             proc                            ; On entry, HL=address of filename, null-terminated.
+                        call esxDOS.fOpen               ; Open cfg file.
+                        //ErrorIfCarryEsx()             ; Would be standard error "No such file or dir".
+                        ret c                           ; Let caller handle error.
+                        ld hl, CfgBuffer                ; HL = address to load into.
+                        ld (CfgFileStart), hl
+                        ld bc, $1C00                    ; BC = number of bytes to read.
+                        call esxDOS.fRead               ; Read the entire file (or most of it if huge).
+                        ret c                           ; Let caller handle error.
+                        ld (hl), CR
+                        inc hl
+                        ld (hl), LF
+                        inc hl
+                        ld (hl), 0                      ; Set the EOF byte.
+                        dec hl
+                        ld (CfgFileEnd), hl
+                        ld (CfgFileLen), bc
+                        call esxDOS.fClose              ; Close the .cfg file again, ignoring any errors.
+                        or a                            ; Clear carry to ignore close error.
+                        ret
 pend
 
-SectionList proc
-  struct
-    NameAddr            ds 2
-    NameLen             ds 2
-    Number              ds 2
-    Dummy               ds CfgList.Size-10
-    NextEntry           ds 2
-    Dummy2              ds 2
-  Size send
-  //zeusprinthex Size
-pend
-                                                       ;
-EOLStyle proc                                           ;
-  LF       equ 0                                        ; %00     Constants to
-  CR       equ 1                                        ; %01     represent the
-  LFCR     equ 2                                        ; %10     four different
-  CRLF     equ 3                                        ; %11     EOL styles.
-  IsDouble equ %10
-pend
-
-//org $DFF1                                               ; The Cfg global vars are positioned right at
-CfgFileStart:      dw CfgBuffer                         ; the top of 8k bank 2, between $DFF1 and $FFFF.
-CfgFileEnd:        dw PreloadedCfgAddr
-CfgFileLen:        dw PreloadedCfgLen
-CfgNextLineStart:  dw 0
-CfgLastRecord:     dw 0
-CfgSectionsStart:  dw 0
-CfgSectionsNext:   dw 0
-CfgLineEndings:    db 0
-
-
-
-//org $E000
 ParseCfgFile            proc
                         ld (BalanceStack), sp
-Reparse:                if not enabled ZeusDebug        ; When running in Zeus, the cfg file contents
-                          ld ix, FileName               ; will already be planted in memory in the buffer.
-                          call esxDOS.fOpen             ; Otherwise, open cfg file.
-                          jp c, CreateDefaultCfgFile
-                          ld ix, CfgBuffer              ; ix = address to load into
-                          ld (CfgFileStart), ix
-                          ld bc, $1C00                  ; bc = number of bytes to read
-                          call esxDOS.fRead             ; Read the entire file (or most of it if huge)
-                          jp c, LoadSettings.Error      ; into the buffer.
-                          ld (hl), 0                    ; Set the EOF byte
-                          dec hl
-                          ld (CfgFileEnd), hl
-                          ld (CfgFileLen), bc
-                          call esxDOS.fClose            ; Close the cfg file again,ignoring any errors.
-                        endif
                         ld iy, 0
                         ld hl, 0
                         ld (CfgSectionsStart), hl
@@ -331,29 +280,7 @@ LastLine:
                         ld (CfgLastRecord), ix          ; Save the last CfgList record
                         ld sp, [BalanceStack]SMC
                         ret
-
-FileName:               db "NXtel.cfg", 0
 pend
-
-
-
-CreateDefaultCfgFile    proc
-                        if not enabled ZeusDebug
-                          cp 5                          ; Only trap "No such file or dir"
-                          jp nz, LoadSettings.Error     ; Otherwise display standard error message
-                          ld ix, ParseCfgFile.FileName
-                          call esxDOS.fCreate
-                          jp c, LoadSettings.Error
-                          ld ix, DefaultCfg.File
-                          ld bc, DefaultCfg.Len
-                          call esxDOS.fWrite
-                          jp c, LoadSettings.Error
-                          call esxDOS.fClose
-                          jp ParseCfgFile.Reparse       ; Don't save stack a second time
-                        endif
-pend
-
-
 
 CfgFindKey              proc                            ; de = address of key to search for
                         ld (SearchKey), de
@@ -506,3 +433,57 @@ DefaultCfg proc File:
   Len equ $-File
 pend
 
+TempCounter = $
+
+org $DFF1                                               ; The Cfg global vars are positioned right at
+CfgFileStart:      dw CfgBuffer                         ; the top of slot 6, between $DFF1 and $FFFF.
+CfgFileEnd:        dw 0
+CfgFileLen:        dw 0
+CfgNextLineStart:  dw 0
+CfgLastRecord:     dw 0
+CfgSectionsStart:  dw 0
+CfgSectionsNext:   dw 0
+CfgLineEndings:    db 0
+
+org CfgFileStart-CfgList.Size                           ; The CfgList linked list is positioned near
+CfgList proc                                            ; the top of slot 6, and grows downwards.
+  struct                                                ; The first record is at $DFDF-$DFF0.
+    LineAddr            ds 1
+    LineAddrMSB         ds 1
+    KeyAddr             ds 2
+    KeyLen              ds 1
+    KeyLenMSB           ds 1
+    ValueAddr           ds 2
+    ValueLen            ds 2
+    LineLen             ds 2
+    PrevEntry           ds 1
+    PrevEntryMSB        ds 1
+    NextEntry           ds 2
+    SectionEntry        ds 2
+  Size send
+  //zeusprinthex CfgList,CfgList+CfgList.Size-1, Size
+pend
+
+SectionList proc
+  struct
+    NameAddr            ds 2
+    NameLen             ds 2
+    Number              ds 2
+    Dummy               ds CfgList.Size-10
+    NextEntry           ds 2
+    Dummy2              ds 2
+  Size send
+  //zeusprinthex Size
+pend
+
+EOLStyle proc                                           ;
+  LF       equ 0                                        ; %00     Constants to
+  CR       equ 1                                        ; %01     represent the
+  LFCR     equ 2                                        ; %10     four different
+  CRLF     equ 3                                        ; %11     EOL styles.
+  IsDouble equ %10
+pend
+
+org TempCounter
+
+zeusprinthex "First config record = ", $DFDF, $DFF0
