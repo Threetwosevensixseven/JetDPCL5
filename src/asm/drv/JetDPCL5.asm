@@ -19,6 +19,8 @@ EntryStart:             ld a, b                         ; On entry, B=call id wi
                         jr z, OutputChar                ; only needs to provide 2 standard calls:
                         cp $f7                          ;   B=$f7: return output status;
                         jr z, ReturnStatus              ;   B=$fb: output character.
+                        cp $7f
+                        jr z, ReturnZXBank1
 ApiError:
                         xor a                           ; A=0, unsupported call id.
                         scf                             ; FC=1, signals error.
@@ -59,6 +61,15 @@ NextRegReadProc         proc                            ; Entry: A = nextreg to 
                         out (c), a
                         inc b
                         in a, (c)                       ; Returns: A = value of nextreg.
+                        ret
+pend
+
+ReturnZXBank1           proc
+                        ld a, ([RE_ZX1]BA_ZX1)
+                        ld c, a                         ; BC = 1st DRIVER TO value
+                        ld de, 'J'*256+'e'              ; DE = 2nd DRIVER TO value
+                        ld hl, 't'*256+'D'              ; HL = 3rd DRIVER TO value, DEHL = "JetD" magic signature
+                        or a                            ; Clear carry to indicate success
                         ret
 pend
 

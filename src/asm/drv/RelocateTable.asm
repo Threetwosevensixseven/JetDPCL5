@@ -1,19 +1,20 @@
 ; RelocateTable.asm
 ; Generated automatically by Relocate.exe
 
-dw $0014 ; RE_ISR0                         EQU $0013
-dw $0029 ; RE_IsOpen1                      EQU $0028
-dw $002E ; RE_Open1                        EQU $002D
-dw $0048 ; RE_Page2a                       EQU $0047
-dw $004E ; RE_Page2b                       EQU $004D
-dw $0061 ; PageZXBanks.RE_RestoreAddr0     EQU $0060
-dw $0064 ; PageZXBanks.RE_RestoreBank0     EQU $0063
-dw $006F ; PageZXBanks.RE_RestoreAddr1     EQU $006E
-dw $0072 ; PageZXBanks.RE_RestoreBank1     EQU $0071
-dw $0086 ; OpenESPConnectionFar.RE_Page3a  EQU $0085
-dw $008C ; OpenESPConnectionFar.RE_Page3b  EQU $008B
-dw $0092 ; CloseESPConnectionFar.RE_Page4a EQU $0091
-dw $0095 ; CloseESPConnectionFar.RE_IsOpen2 EQU $0094
-dw $009B ; CloseESPConnectionFar.RE_Page4b EQU $009A
-dw $005E ; PageZXBanks.NextRegRead[000003].RE_NRR EQU $005D
-dw $006C ; PageZXBanks.NextRegRead[000004].RE_NRR EQU $006B
+dw $0015 ; RE_ISR0                         EQU $0014
+dw $002E ; RE_IsOpen1                      EQU $002D
+dw $0033 ; RE_Open1                        EQU $0032
+dw $004D ; RE_Page2a                       EQU $004C
+dw $0053 ; RE_Page2b                       EQU $0052
+dw $0061 ; ReturnZXBank1.RE_ZX1            EQU $0060
+dw $0072 ; PageZXBanks.RE_RestoreAddr0     EQU $0071
+dw $0075 ; PageZXBanks.RE_RestoreBank0     EQU $0074
+dw $0080 ; PageZXBanks.RE_RestoreAddr1     EQU $007F
+dw $0083 ; PageZXBanks.RE_RestoreBank1     EQU $0082
+dw $0097 ; OpenESPConnectionFar.RE_Page3a  EQU $0096
+dw $009D ; OpenESPConnectionFar.RE_Page3b  EQU $009C
+dw $00A3 ; CloseESPConnectionFar.RE_Page4a EQU $00A2
+dw $00A6 ; CloseESPConnectionFar.RE_IsOpen2 EQU $00A5
+dw $00AC ; CloseESPConnectionFar.RE_Page4b EQU $00AB
+dw $006F ; PageZXBanks.NextRegRead[000004].RE_NRR EQU $006E
+dw $007D ; PageZXBanks.NextRegRead[000005].RE_NRR EQU $007C
