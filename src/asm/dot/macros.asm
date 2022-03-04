@@ -114,6 +114,12 @@ PrintMsg                macro(Address)                  ; Parameterised wrapper 
                         call PrintRst16
 mend
 
+PrintMsgLen             macro(Address, Len)                  ; Parameterised wrapper for null-terminated buffer print routine
+                        ld hl, Address
+                        ld bc, Len
+                        call PrintRst16Len
+mend
+
 PrintBufferHex          macro(Addr, Len)                ; Parameterised wrapper for fixed-length hex print routine
                         ld hl, Addr
                         ld de, Len
@@ -124,12 +130,15 @@ SafePrintStart          macro()                         ; Included at the start 
                         di                              ; Interrupts off while paging. Subsequent code will enable them.
                         ld (SavedStackPrint), sp        ; Save current stack to be restored in SafePrintEnd()
                         ld sp, (Return.Stack1)          ; Set stack back to what BASIC had at entry, so safe for rst 16
+                        ld (SavedIYPrint), iy
+                        ld iy, $5C3A
 mend
 
 SafePrintEnd            macro()                         ; Included at the end of every routine which calls rst 16
                         di                              ; Interrupts off while paging. Subsequent code doesn't care.
 SavedA equ $+1:         ld a, SMC                       ; Restore A so it's completely free of side-effects
                         ld sp, (SavedStackPrint)        ; Restore stack to what it was before SafePrintStart()
+                        ld iy, (SavedIYPrint)
 mend
 
 Rst8                    macro(Command)                  ; Parameterised wrapper for esxDOS API routine

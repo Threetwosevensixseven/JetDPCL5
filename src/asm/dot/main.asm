@@ -129,16 +129,17 @@ WrongDriver:            ErrorIfNotZero(Err.WrongDriver) ; "Wrong driver installe
                         call LoadCfgFile
                         ErrorIfCarry(Err.CfgError)      ; Custom error "Error reading config"
 
-                        // TODO: Something is preventing errors from being thrown after this point
-
-                        //call ParseCfgFile               ; Parse config into a linked list
+                        call ParseCfgFile               ; Parse config into a linked list
 
                         ld de, Keys.Printers            ; DE = Null-terminated key to search for
-                        //call CfgFindKey                 ; CF=Success, HL=Value address, BC=Value length
-                        //CSBreak()
-                        ErrorAlways(Err.NoPrinters)
+                        call CfgFindKey                 ; CF=Success, HL=Value address, BC=Value length
+                        ErrorIfCarry(Err.CfgError)      ; Custom error "Error reading config"
+                        call PrintRst16Len;
 
-                        //Freeze(1,3)
+
+
+
+
 
                         if enabled ErrDebug
                           ; This is a temporary testing point that indicates we have have reached

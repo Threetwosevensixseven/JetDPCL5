@@ -85,9 +85,8 @@ ToBasic:                                                ; the dot cmd, for succe
                         call RestoreSpeed               ; Restore original CPU speed
                         call RestoreF8                  ; Restore original F8 enable/disable state.
                         call RestoreBanks               ; Restore original banks
-Stack                   ld sp, SMC                      ; Unwind stack to original point.
-Stack1                  equ Stack+1
-IY1 equ $+1:            ld iy, SMC                      ; Restore IY.
+Stack:                  ld sp, [Stack1]SMC              ; Unwind stack to original point.
+                        ld iy, [IY1]SMC                 ; Restore IY.
                         ld a, [SetError]0               ; <SMC Standard esxDOS error code gets patched here.
                         ei
                         ret                             ; Return to BASIC.

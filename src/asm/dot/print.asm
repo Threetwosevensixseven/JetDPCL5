@@ -15,7 +15,7 @@
 ; limitations under the License.
 
 Msg                     proc
-  Startup:              db "JetDPCL5 v1.", BuildNoValue, CR
+  Startup:              db "JetDPCL5 Driver Helper v1.", BuildNoValue, CR
                         db Copyright, " 2022 Robin Verhagen-Guest", CR, CR, 0
   EOL:                  db CR, 0
   Driver:               db "Checking driver...", CR, 0
@@ -85,6 +85,24 @@ Loop:                   ld a, (hl)
                         jp z, Return
                         rst 16
                         jr Loop
+Return:                 SafePrintEnd()
+                        ret
+pend
+
+PrintRst16Len           proc
+                        SafePrintStart()
+                        if DisableScroll
+                          ld a, 24                      ; Set upper screen to not scroll
+                          ld (SCR_CT), a                ; for another 24 rows of printing
+                        endif
+                        ei
+Loop:                   ld a, (hl)
+                        inc hl
+                        rst 16
+                        dec bc
+                        ld a, b
+                        or c
+                        jr nz, Loop
 Return:                 SafePrintEnd()
                         ret
 pend

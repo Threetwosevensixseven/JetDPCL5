@@ -18,6 +18,7 @@
 SavedArgs:              dw 0
 SavedArgsLen            dw 0
 SavedStackPrint:        dw $0000
+SavedIYPrint:           dw $0000
 IsNext:                 ds 0
 ArgBuffer:              ds 256
 WantsHelp:              ds 1
@@ -26,11 +27,12 @@ WantsHelp:              ds 1
 Prescaler:              ds 3
 
 Files                   proc
-  MainCfg               db "c:/sys/JetDPCL5.cfg", 0
+  MainCfg:              db "c:/sys/JetDPCL5.cfg", 0
 pend
 
 Keys                    proc
-  Printers              db "xPrinters", 0
+  Printers:             db "Printers", 0
+  Name:                 db "Name", 0
+  Address:              db "Address", 0
 pend
-
 
